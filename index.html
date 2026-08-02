@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Inspect ERC-20, ERC-721 and ERC-1155 token contracts on Arc Testnet without connecting a wallet."
+    />
+    <meta name="theme-color" content="#090713" />
+    <meta property="og:title" content="Token Inspector V2.2" />
+    <meta
+      property="og:description"
+      content="Token metadata, standard detection, contract verification, proxy detection and technical signals."
+    />
+    <title>Token Inspector V2.2</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+  </head>
+
+  <body data-theme="dark">
+    <canvas id="bg-squares" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="./" aria-label="Token Inspector home">
+          <img src="favicon.png" class="header-logo" alt="Token Inspector logo" />
+          <span class="brand-copy">
+            <span class="eyebrow">TOKEN CONTRACT TOOL</span>
+            <span class="brand-title">Token Inspector <strong>V2.2</strong></span>
+          </span>
+        </a>
+
+        <div class="header-actions">
+          <div class="network-badge" title="Arc Testnet chain ID 5042002">
+            <span class="network-dot" id="networkDot"></span>
+            <span>Arc Testnet</span>
+            <span class="network-chain">5042002</span>
+          </div>
+          <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle color theme">
+            <span aria-hidden="true">☾</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero-card" aria-labelledby="pageTitle">
+          <div class="hero-copy">
+            <p class="eyebrow">NO WALLET CONNECTION REQUIRED</p>
+            <h1 id="pageTitle">Inspect token contracts.</h1>
+            <p>
+              Read live metadata from Arc Testnet, identify ERC-20, ERC-721 and ERC-1155
+              contracts, check explorer verification and review transparent technical signals.
+            </p>
+          </div>
+
+          <form id="analyzeForm" class="analyze-form" novalidate>
+            <label for="tokenAddress">Contract address</label>
+            <div class="input-row">
+              <input
+                id="tokenAddress"
+                name="address"
+                type="text"
+                inputmode="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="0x..."
+                aria-describedby="statusMsg"
+              />
+              <button id="analyzeBtn" class="primary-button" type="submit">
+                <span class="button-label">Inspect token</span>
+                <span class="button-loader" aria-hidden="true"></span>
+              </button>
+            </div>
+            <p id="statusMsg" class="status-message" aria-live="polite">
+              Paste any Arc Testnet token contract address.
+            </p>
+          </form>
+
+          <div class="examples" aria-label="Token examples">
+            <span>Try examples:</span>
+            <button type="button" class="example-chip" data-address="0x3600000000000000000000000000000000000000">
+              USDC · ERC-20
+            </button>
+            <button type="button" class="example-chip" data-address="0x76a816EFa69e3183972ff7a231F5C8d7b065d9De">
+              INAME · ERC-721
+            </button>
+            <button type="button" class="example-chip" data-address="0x363cC75a89aE5673b427a1Fa98AFc48FfDE7Ba43">
+              GM · ERC-721
+            </button>
+          </div>
+        </section>
+
+        <section class="network-strip" aria-label="Arc network status">
+          <div>
+            <span class="strip-label">Network</span>
+            <strong id="networkStatusText">Checking Arc Testnet…</strong>
+          </div>
+          <div>
+            <span class="strip-label">Latest block</span>
+            <strong id="latestBlock">—</strong>
+          </div>
+          <div>
+            <span class="strip-label">RPC</span>
+            <strong id="rpcProvider">—</strong>
+          </div>
+          <div>
+            <span class="strip-label">Response</span>
+            <strong id="rpcLatency">—</strong>
+          </div>
+        </section>
+
+        <section id="emptyState" class="empty-state">
+          <div class="empty-icon" aria-hidden="true">⌁</div>
+          <h2>Ready to inspect</h2>
+          <p>Results are read from Arc Testnet and its Blockscout explorer.</p>
+        </section>
+
+        <section id="results" class="results hidden" aria-live="polite">
+          <div class="result-heading">
+            <div>
+              <p class="eyebrow">ANALYSIS RESULT</p>
+              <h2 id="resultTitle">Token details</h2>
+            </div>
+            <div id="resultBadges" class="badge-row"></div>
+          </div>
+
+          <div class="cards-grid">
+            <article class="card token-card">
+              <div class="card-heading">
+                <div id="tokenAvatar" class="token-avatar" aria-hidden="true">?</div>
+                <div class="card-title-group">
+                  <span class="card-kicker">TOKEN CONTRACT</span>
+                  <h3 id="tokenName">Unknown token</h3>
+                  <span id="tokenSymbol" class="token-symbol">—</span>
+                </div>
+              </div>
+
+              <div class="address-box">
+                <code id="tokenAddressFull">—</code>
+                <button id="copyAddressBtn" class="copy-button" type="button">Copy</button>
+              </div>
+
+              <dl class="data-list">
+                <div><dt>Standard</dt><dd id="tStandard">—</dd></div>
+                <div><dt id="decimalsLabel">Decimals</dt><dd id="tDecimals">—</dd></div>
+                <div><dt id="rawSupplyLabel">Raw total supply</dt><dd id="tSupplyRaw" class="mono-value">—</dd></div>
+                <div><dt id="formattedSupplyLabel">Formatted supply</dt><dd id="tSupplyHuman" class="mono-value">—</dd></div>
+                <div><dt>Holders indexed</dt><dd id="tHolders">—</dd></div>
+              </dl>
+
+              <a id="explorerTokenLink" class="external-link" target="_blank" rel="noopener noreferrer">
+                Open token in ArcScan <span aria-hidden="true">↗</span>
+              </a>
+            </article>
+
+            <article class="card signal-card">
+              <div class="card-topline">
+                <span class="card-kicker">TECHNICAL SIGNALS</span>
+                <span id="riskPill" class="risk-pill risk-neutral">Pending</span>
+              </div>
+              <h3 id="riskTitle">No analysis yet</h3>
+              <p id="riskDescription" class="muted"></p>
+              <ul id="riskNotes" class="signal-list"></ul>
+              <p class="disclaimer">
+                Automated metadata checks are not a smart-contract audit or investment advice.
+              </p>
+            </article>
+
+            <article class="card contract-card">
+              <div class="card-topline">
+                <span class="card-kicker">CONTRACT</span>
+                <span id="verificationPill" class="verification-pill">Unknown</span>
+              </div>
+              <h3>Contract details</h3>
+              <dl class="data-list">
+                <div><dt>Classification</dt><dd id="cClassification">—</dd></div>
+                <div><dt>Detection source</dt><dd id="cDetectionSource">—</dd></div>
+                <div><dt>Bytecode size</dt><dd id="cBytecode">—</dd></div>
+                <div><dt>Proxy detected</dt><dd id="cProxy">—</dd></div>
+                <div><dt>Implementation</dt><dd id="cImplementation" class="mono-value">—</dd></div>
+                <div><dt>RPC provider</dt><dd id="cRpc">—</dd></div>
+                <div><dt>Analyzed at block</dt><dd id="cBlock">—</dd></div>
+              </dl>
+              <a id="explorerAddressLink" class="external-link" target="_blank" rel="noopener noreferrer">
+                Open contract in ArcScan <span aria-hidden="true">↗</span>
+              </a>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <div>
+          <strong>Token Inspector V2.2</strong>
+          <span>Built by João Carlos for the Arc ecosystem community.</span>
+        </div>
+        <nav aria-label="Project links">
+          <a href="https://github.com/joaodd1590-sys/Arc-Token-Inspector" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://docs.arc.network" target="_blank" rel="noopener noreferrer">Arc Docs</a>
+          <a href="https://testnet.arcscan.app" target="_blank" rel="noopener noreferrer">ArcScan</a>
+        </nav>
+      </footer>
+    </div>
+
+    <script src="bg-squares.js" defer></script>
+    <script src="tokens.js" defer></script>
+  </body>
+</html>

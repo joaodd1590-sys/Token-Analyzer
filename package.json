@@ -1,0 +1,13 @@
+{
+  "name": "token-inspector",
+  "version": "2.2.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Multi-standard token contract inspector for Arc Testnet.",
+  "scripts": {
+    "check": "node --check tokens.js && node --check bg-squares.js && node --check api/_lib/arc.js && node --check api/arc-token.js && node --check api/detect-address.js && node --check api/network-status.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

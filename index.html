@@ -57,18 +57,17 @@
           <form id="analyzeForm" class="analyze-form" novalidate>
             <label for="tokenAddress">Contract address</label>
             <div class="input-row">
-              <textarea
+              <input
                 id="tokenAddress"
                 name="address"
-                rows="1"
-                wrap="soft"
+                type="text"
                 inputmode="text"
                 autocomplete="off"
                 autocapitalize="off"
                 spellcheck="false"
                 placeholder="0x..."
                 aria-describedby="statusMsg"
-              ></textarea>
+              />
               <button id="analyzeBtn" class="primary-button" type="submit">
                 <span class="button-label">Inspect token</span>
                 <span class="button-loader" aria-hidden="true"></span>

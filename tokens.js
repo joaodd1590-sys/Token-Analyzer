@@ -44,6 +44,12 @@ const OFFICIAL_TOKENS = {
   }
 };
 
+const NETWORK_STATUS_CACHE_KEY = "token-analyzer-network-status";
+const PREFERRED_RPC_CACHE_KEY = "token-analyzer-preferred-rpc";
+const NETWORK_STATUS_CACHE_TTL_MS = 5 * 60 * 1000;
+const API_STATUS_TIMEOUT_MS = 2_200;
+const RPC_PROBE_TIMEOUT_MS = 3_500;
+
 const ui = {};
 let lastAddress = "";
 
@@ -51,12 +57,16 @@ window.addEventListener("DOMContentLoaded", () => {
   cacheUi();
   initializeTheme();
   initializeEvents();
-  refreshNetworkStatus();
+  initializeStickyHeader();
+
+  const restoredCachedStatus = restoreCachedNetworkStatus();
+  refreshNetworkStatus({ background: restoredCachedStatus });
   inspectAddressFromUrl();
 });
 
 function cacheUi() {
   const ids = [
+    "appHeader",
     "analyzeForm",
     "tokenAddress",
     "analyzeBtn",
@@ -71,6 +81,10 @@ function cacheUi() {
     "results",
     "resultTitle",
     "resultBadges",
+    "verdictBanner",
+    "verdictIcon",
+    "verdictTitle",
+    "verdictText",
     "tokenAvatar",
     "tokenName",
     "tokenSymbol",
@@ -119,12 +133,47 @@ function initializeEvents() {
   });
 }
 
+function initializeStickyHeader() {
+  if (!ui.appHeader) return;
+
+  let frameRequested = false;
+
+  const updateHeader = () => {
+    ui.appHeader.classList.toggle("is-scrolled", window.scrollY > 12);
+
+    const computedTop = Number.parseFloat(
+      window.getComputedStyle(ui.appHeader).top
+    ) || 0;
+
+    const offset = Math.ceil(
+      ui.appHeader.offsetHeight + computedTop + 16
+    );
+
+    document.documentElement.style.setProperty(
+      "--sticky-header-offset",
+      `${offset}px`
+    );
+
+    frameRequested = false;
+  };
+
+  const requestUpdate = () => {
+    if (frameRequested) return;
+    frameRequested = true;
+    window.requestAnimationFrame(updateHeader);
+  };
+
+  updateHeader();
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate, { passive: true });
+}
+
 function initializeTheme() {
   const preferred = window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
   let saved = preferred;
 
   try {
-    saved = localStorage.getItem("token-inspector-theme") || preferred;
+    saved = localStorage.getItem("token-analyzer-theme") || preferred;
   } catch {
     // Theme storage is optional.
   }
@@ -134,7 +183,7 @@ function initializeTheme() {
   ui.themeToggle?.addEventListener("click", () => {
     const next = document.body.dataset.theme === "dark" ? "light" : "dark";
     try {
-      localStorage.setItem("token-inspector-theme", next);
+      localStorage.setItem("token-analyzer-theme", next);
     } catch {
       // The theme still changes in the current tab.
     }
@@ -152,26 +201,101 @@ function applyTheme(theme) {
   );
 }
 
-async function refreshNetworkStatus() {
-  setNetworkState("checking");
+async function refreshNetworkStatus({ background = false } = {}) {
+  if (!background) {
+    setNetworkState("checking");
+    ui.networkStatusText.textContent = "Connecting to Arc Testnet…";
+  }
 
   try {
     const data = await getNetworkStatus();
     if (!data?.ok) throw new Error(data?.message || "Network unavailable");
 
-    setNetworkState("online");
-    const mode = data.transport === "direct-rpc" ? " · direct mode" : "";
-    ui.networkStatusText.textContent = `${data.network} online${mode}`;
-    ui.latestBlock.textContent = formatInteger(data.latestBlock);
-    ui.rpcProvider.textContent = data.rpcProvider || "Arc RPC";
-    ui.rpcLatency.textContent = Number.isFinite(data.latencyMs) ? `${data.latencyMs} ms` : "—";
+    applyNetworkStatus(data);
+    cacheNetworkStatus(data);
   } catch (error) {
     console.warn("Network status check failed", error);
+
+    // A recent cached result is preferable to an unnecessary red/offline flash.
+    if (background && ui.networkDot?.classList.contains("is-online")) {
+      ui.networkStatusText.textContent = "Arc Testnet · last connection available";
+      return;
+    }
+
     setNetworkState("offline");
     ui.networkStatusText.textContent = "Arc Testnet temporarily unavailable";
     ui.latestBlock.textContent = "—";
     ui.rpcProvider.textContent = "—";
     ui.rpcLatency.textContent = "—";
+  }
+}
+
+function applyNetworkStatus(data, { cached = false } = {}) {
+  setNetworkState("online");
+
+  const networkName = data.network || data.name || "Arc Testnet";
+  const mode =
+    cached
+      ? " · instant cache"
+      : data.transport === "direct-rpc"
+        ? " · direct mode"
+        : "";
+
+  ui.networkStatusText.textContent = `${networkName} online${mode}`;
+  ui.latestBlock.textContent = formatInteger(data.latestBlock);
+  ui.rpcProvider.textContent = data.rpcProvider || "Arc RPC";
+  ui.rpcLatency.textContent = Number.isFinite(data.latencyMs)
+    ? `${data.latencyMs} ms`
+    : cached
+      ? "cached"
+      : "—";
+}
+
+function restoreCachedNetworkStatus() {
+  try {
+    const raw = localStorage.getItem(NETWORK_STATUS_CACHE_KEY);
+    if (!raw) return false;
+
+    const cached = JSON.parse(raw);
+    const age = Date.now() - Number(cached?.savedAt || 0);
+    const data = cached?.data;
+
+    if (
+      !data?.ok ||
+      Number(data.chainId) !== ARC_CHAIN_ID ||
+      age < 0 ||
+      age > NETWORK_STATUS_CACHE_TTL_MS
+    ) {
+      localStorage.removeItem(NETWORK_STATUS_CACHE_KEY);
+      return false;
+    }
+
+    applyNetworkStatus(data, { cached: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function cacheNetworkStatus(data) {
+  try {
+    localStorage.setItem(
+      NETWORK_STATUS_CACHE_KEY,
+      JSON.stringify({
+        savedAt: Date.now(),
+        data: {
+          ok: true,
+          network: data.network || data.name || "Arc Testnet",
+          chainId: Number(data.chainId || ARC_CHAIN_ID),
+          latestBlock: data.latestBlock,
+          rpcProvider: data.rpcProvider || "Arc RPC",
+          latencyMs: data.latencyMs,
+          transport: data.transport || "server-api"
+        }
+      })
+    );
+  } catch {
+    // Network status caching is optional.
   }
 }
 
@@ -217,6 +341,7 @@ async function handleAnalyze() {
       `${data.standard || "Token"} detected through ${mode} using ${data.network?.rpcProvider || "Arc RPC"}.`,
       "success"
     );
+    scheduleResultScroll();
   } catch (error) {
     console.error(error);
     hideResults();
@@ -275,7 +400,7 @@ function renderToken(data) {
     ui.tSupplyHuman.textContent = formatTokenAmount(token.totalSupply, token.decimals);
   }
 
-  renderAvatar(symbol, token.iconUrl);
+  renderAvatar(address, symbol, token.iconUrl);
   renderBadges(data);
   renderContractDetails(data);
   renderSignals(data);
@@ -288,26 +413,68 @@ function renderToken(data) {
   ui.rpcLatency.textContent = Number.isFinite(network.latencyMs) ? `${network.latencyMs} ms` : "—";
 }
 
-function renderAvatar(symbol, iconUrl) {
-  ui.tokenAvatar.replaceChildren();
+function renderAvatar(address, symbol, iconUrl) {
+  const candidates = buildTokenIconCandidates(address, iconUrl);
+  setAvatarFallback(symbol, { loading: candidates.length > 0 });
 
-  if (iconUrl && /^https:\/\//i.test(iconUrl)) {
-    const image = new Image();
-    image.alt = "";
-    image.loading = "lazy";
-    image.referrerPolicy = "no-referrer";
-    image.src = iconUrl;
-    image.addEventListener("load", () => ui.tokenAvatar.replaceChildren(image), { once: true });
-    image.addEventListener("error", () => setAvatarFallback(symbol), { once: true });
+  if (candidates.length === 0) return;
+  loadFirstAvailableTokenIcon(candidates, symbol);
+}
+
+function buildTokenIconCandidates(address, iconUrl) {
+  const candidates = [];
+  const normalizedExplorerIcon = normalizeIconUrl(iconUrl);
+
+  if (normalizedExplorerIcon) candidates.push(normalizedExplorerIcon);
+
+  if (isAddress(address) && /^https?:$/.test(window.location.protocol)) {
+    candidates.push(
+      new URL(
+        `/api/token-icon?address=${encodeURIComponent(address.toLowerCase())}`,
+        window.location.origin
+      ).href
+    );
+  }
+
+  return [...new Set(candidates)];
+}
+
+function loadFirstAvailableTokenIcon(candidates, symbol, index = 0) {
+  if (index >= candidates.length) {
     setAvatarFallback(symbol);
     return;
   }
 
-  setAvatarFallback(symbol);
+  const image = new Image();
+  image.alt = `${String(symbol || "Token")} token logo`;
+  image.className = "token-logo-image";
+  image.decoding = "async";
+  image.loading = "eager";
+  image.referrerPolicy = "no-referrer";
+
+  image.addEventListener(
+    "load",
+    () => {
+      ui.tokenAvatar.replaceChildren(image);
+      ui.tokenAvatar.classList.remove("is-loading");
+      ui.tokenAvatar.classList.add("has-image");
+    },
+    { once: true }
+  );
+
+  image.addEventListener(
+    "error",
+    () => loadFirstAvailableTokenIcon(candidates, symbol, index + 1),
+    { once: true }
+  );
+
+  image.src = candidates[index];
 }
 
-function setAvatarFallback(symbol) {
+function setAvatarFallback(symbol, { loading = false } = {}) {
   ui.tokenAvatar.replaceChildren();
+  ui.tokenAvatar.classList.remove("has-image");
+  ui.tokenAvatar.classList.toggle("is-loading", loading);
   ui.tokenAvatar.textContent = String(symbol || "?").slice(0, 1).toUpperCase();
 }
 
@@ -426,11 +593,11 @@ function renderSignals(data) {
   if (data.official) score = Math.max(0, score - 2);
 
   if (score === 0) {
-    setSignal("No obvious metadata issue", "The available standard and metadata signals are consistent.", "safe");
+    setSignal("Likely Safe", "No obvious warning signs were found in the available automated checks.", "safe");
   } else if (score <= 2) {
-    setSignal("Review recommended", "Some contract or metadata details deserve manual review.", "warning");
+    setSignal("Risky — Review Required", "Some signals require manual review before interacting with this contract.", "warning");
   } else {
-    setSignal("Limited metadata", "Several expected signals were incomplete or unusual.", "danger");
+    setSignal("High Risk", "Several expected signals are missing or unusual. Avoid interacting until the contract is reviewed.", "danger");
   }
 
   ui.riskNotes.replaceChildren();
@@ -443,10 +610,69 @@ function renderSignals(data) {
 }
 
 function setSignal(label, description, tone) {
+  const icons = {
+    safe: "✓",
+    warning: "!",
+    danger: "×",
+    neutral: "?"
+  };
+
   ui.riskPill.textContent = label;
   ui.riskPill.className = `risk-pill risk-${tone}`;
   ui.riskTitle.textContent = label;
   ui.riskDescription.textContent = description;
+
+  if (ui.verdictBanner) {
+    ui.verdictBanner.className = `verdict-banner verdict-${tone}`;
+    ui.verdictIcon.textContent = icons[tone] || "?";
+    ui.verdictTitle.textContent = label;
+    ui.verdictText.textContent = description;
+
+    // Restart the entrance animation for every new inspection.
+    void ui.verdictBanner.offsetWidth;
+    ui.verdictBanner.classList.add("is-revealed");
+  }
+}
+
+function scheduleResultScroll() {
+  if (!ui.results || ui.results.classList.contains("hidden")) return;
+
+  const reduceMotion = window.matchMedia?.(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  window.setTimeout(() => {
+    const target = ui.results;
+    const targetRect = target.getBoundingClientRect();
+    const headerRect = ui.appHeader?.getBoundingClientRect();
+    const visibleTop = Math.max(18, (headerRect?.bottom || 0) + 14);
+    const resultIsComfortablyVisible =
+      targetRect.top >= visibleTop &&
+      targetRect.top <= Math.max(visibleTop, window.innerHeight * 0.3);
+
+    if (!resultIsComfortablyVisible) {
+      const computedHeaderTop = ui.appHeader
+        ? Number.parseFloat(window.getComputedStyle(ui.appHeader).top) || 0
+        : 0;
+
+      const stickyOffset =
+        (ui.appHeader?.offsetHeight || 0) + computedHeaderTop + 18;
+
+      const targetTop =
+        window.scrollY + targetRect.top - stickyOffset;
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: reduceMotion ? "auto" : "smooth"
+      });
+    }
+
+    ui.results.classList.add("result-focus");
+    window.setTimeout(
+      () => ui.results?.classList.remove("result-focus"),
+      1_600
+    );
+  }, 220);
 }
 
 function hideResults() {
@@ -509,23 +735,38 @@ async function inspectAddress(address) {
 }
 
 async function getNetworkStatus() {
-  try {
-    const apiData = await requestApi("/api/network-status", 8_000);
-    return { ...apiData, transport: "server-api" };
-  } catch {
-    const started = performance.now();
-    const selected = await selectRpc();
-    const blockHex = await rpcAt(selected.url, "eth_blockNumber", []);
+  const apiRequest = requestApi("/api/network-status", API_STATUS_TIMEOUT_MS).then((data) => {
+    if (Number(data?.chainId) !== ARC_CHAIN_ID) {
+      throw new Error("The server API returned an unexpected chain ID");
+    }
+
     return {
-      ok: true,
-      network: "Arc Testnet",
-      chainId: ARC_CHAIN_ID,
-      latestBlock: Number(BigInt(blockHex)),
-      rpcProvider: safeHostname(selected.url),
-      latencyMs: Math.round(performance.now() - started),
-      transport: "direct-rpc"
+      ...data,
+      network: data.network || data.name || "Arc Testnet",
+      transport: "server-api"
     };
-  }
+  });
+
+  const directRequest = getDirectNetworkStatus();
+
+  // API and direct RPC start together. The first valid response is used.
+  return firstSuccessful([directRequest, apiRequest]);
+}
+
+async function getDirectNetworkStatus() {
+  const started = performance.now();
+  const selected = await selectRpc();
+  const blockHex = await rpcAt(selected.url, "eth_blockNumber", [], RPC_PROBE_TIMEOUT_MS);
+
+  return {
+    ok: true,
+    network: "Arc Testnet",
+    chainId: ARC_CHAIN_ID,
+    latestBlock: Number(BigInt(blockHex)),
+    rpcProvider: safeHostname(selected.url),
+    latencyMs: Math.round(performance.now() - started),
+    transport: "direct-rpc"
+  };
 }
 
 async function directInspectAddress(inputAddress) {
@@ -662,7 +903,20 @@ async function getExplorerToken(address) {
     decimals: parseDecimals(source?.decimals ?? legacyToken?.decimals),
     totalSupply: parseInteger(source?.total_supply ?? source?.totalSupply ?? legacyToken?.totalSupply),
     holdersCount: source?.holders_count ?? source?.holders ?? null,
-    iconUrl: normalizeIconUrl(source?.icon_url || null),
+    iconUrl: normalizeIconUrl(
+      firstNonEmptyValue(
+        source?.icon_url,
+        source?.iconUrl,
+        source?.logo_url,
+        source?.logoUrl,
+        source?.image_url,
+        source?.imageUrl,
+        source?.image,
+        addressInfo?.token?.icon_url,
+        addressInfo?.token?.logo_url,
+        addressInfo?.token?.image_url
+      )
+    ),
     contractName: contractInfo?.name || addressInfo?.name || null,
     verified: Boolean(
       addressInfo?.is_verified ||
@@ -702,17 +956,82 @@ async function requestApi(path, timeoutMs) {
 }
 
 async function selectRpc() {
-  const errors = [];
-  for (const url of RPC_URLS) {
-    try {
-      const chainId = String(await rpcAt(url, "eth_chainId", [], 6_500)).toLowerCase();
-      if (chainId === ARC_CHAIN_ID_HEX) return { url };
-      errors.push(`${safeHostname(url)} returned ${chainId}`);
-    } catch (error) {
-      errors.push(`${safeHostname(url)}: ${error?.message || "unavailable"}`);
+  const preferred = getPreferredRpc();
+  const candidates = preferred
+    ? [preferred, ...RPC_URLS.filter((url) => url !== preferred)]
+    : [...RPC_URLS];
+
+  const probes = candidates.map(async (url) => {
+    const started = performance.now();
+    const chainId = String(
+      await rpcAt(url, "eth_chainId", [], RPC_PROBE_TIMEOUT_MS)
+    ).toLowerCase();
+
+    if (chainId !== ARC_CHAIN_ID_HEX) {
+      throw new Error(`${safeHostname(url)} returned ${chainId}`);
     }
+
+    return {
+      url,
+      latencyMs: Math.round(performance.now() - started)
+    };
+  });
+
+  const selected = await firstSuccessful(probes);
+  cachePreferredRpc(selected.url);
+  return selected;
+}
+
+function getPreferredRpc() {
+  try {
+    const url = localStorage.getItem(PREFERRED_RPC_CACHE_KEY);
+    return RPC_URLS.includes(url) ? url : null;
+  } catch {
+    return null;
   }
-  throw new Error(`No Arc Testnet RPC endpoint responded. ${errors.join(" | ")}`);
+}
+
+function cachePreferredRpc(url) {
+  if (!RPC_URLS.includes(url)) return;
+
+  try {
+    localStorage.setItem(PREFERRED_RPC_CACHE_KEY, url);
+  } catch {
+    // Preferred RPC caching is optional.
+  }
+}
+
+function firstSuccessful(promises) {
+  if (typeof Promise.any === "function") {
+    return Promise.any(promises);
+  }
+
+  return new Promise((resolve, reject) => {
+    const errors = [];
+    let pending = promises.length;
+
+    if (pending === 0) {
+      reject(new Error("No connection attempts were provided"));
+      return;
+    }
+
+    promises.forEach((promise, index) => {
+      Promise.resolve(promise).then(resolve).catch((error) => {
+        errors[index] = error;
+        pending -= 1;
+
+        if (pending === 0) {
+          reject(
+            new Error(
+              errors
+                .map((item) => item?.message || "Connection failed")
+                .join(" | ")
+            )
+          );
+        }
+      });
+    });
+  });
 }
 
 async function rpcAt(url, method, params = [], timeoutMs = 8_000) {
@@ -850,10 +1169,18 @@ function parseDecimals(value) {
   return Number.isInteger(number) && number >= 0 && number <= 255 ? number : null;
 }
 
+function firstNonEmptyValue(...values) {
+  return values.find(
+    (value) => typeof value === "string" && value.trim().length > 0
+  ) || null;
+}
+
 function normalizeIconUrl(value) {
   if (!value) return null;
+
   try {
-    return new URL(value, ARC_EXPLORER).href;
+    const url = new URL(String(value).trim(), ARC_EXPLORER);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
   } catch {
     return null;
   }

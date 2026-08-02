@@ -134,6 +134,7 @@ let lastAddress = "";
 
 window.addEventListener("DOMContentLoaded", () => {
   cacheUi();
+  initializeCurrentYear();
   initializeTheme();
   initializeEvents();
   initializeNetworkSelector();
@@ -199,6 +200,13 @@ function cacheUi() {
   ];
 
   for (const id of ids) ui[id] = document.getElementById(id);
+}
+
+function initializeCurrentYear() {
+  const yearElement = document.getElementById("currentYear");
+  if (!yearElement) return;
+
+  yearElement.textContent = String(new Date().getFullYear());
 }
 
 function initializeEvents() {

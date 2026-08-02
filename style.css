@@ -46,13 +46,17 @@ body[data-theme="light"] {
 
 html {
   min-width: 320px;
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--bg);
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
+  max-width: 100%;
   margin: 0;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 13% -5%, rgba(124, 58, 237, 0.22), transparent 31rem),
     radial-gradient(circle at 88% 18%, rgba(76, 29, 149, 0.17), transparent 28rem),
@@ -87,6 +91,7 @@ a {
 
 .app-shell {
   width: min(1160px, calc(100% - 32px));
+  max-width: 100%;
   margin: 0 auto;
   padding: 28px 0 40px;
 }
@@ -329,6 +334,8 @@ a {
 
 .input-row {
   display: flex;
+  width: 100%;
+  max-width: 100%;
   gap: 10px;
   padding: 7px;
   border: 1px solid var(--border-strong);
@@ -343,7 +350,9 @@ a {
 }
 
 .input-row input {
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
   flex: 1;
   padding: 11px 12px;
   border: 0;
@@ -1226,10 +1235,43 @@ a {
 
   .input-row {
     flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .input-row input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 14px 14px 16px;
+    border-bottom: 1px solid var(--border-strong);
+    border-radius: 0;
+    font-size: 16px;
+    line-height: 1.35;
   }
 
   .primary-button {
     width: 100%;
+    margin-top: 2px;
+  }
+
+  .examples {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .examples > span {
+    margin-bottom: 2px;
+  }
+
+  .example-chip {
+    width: 100%;
+    min-height: 44px;
+    justify-self: stretch;
+    text-align: center;
   }
 
   .network-strip {
@@ -1267,6 +1309,14 @@ a {
 }
 
 @media (max-width: 460px) {
+  .hero-card,
+  .analyze-form,
+  .input-row,
+  .examples {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .app-header {
     gap: 8px;
     margin: -7px -4px 18px;

@@ -1565,11 +1565,11 @@ a {
 
   .examples {
     display: grid;
-    grid-template-columns: max-content max-content max-content;
+    grid-template-columns: max-content max-content max-content max-content;
     align-items: center;
     justify-content: start;
-    column-gap: 6px;
-    row-gap: 9px;
+    column-gap: 5px;
+    row-gap: 0;
     width: 100%;
     max-width: 100%;
   }
@@ -1578,18 +1578,19 @@ a {
     grid-column: 1;
     grid-row: 1;
     margin: 0;
-    font-size: 0.68rem;
+    font-size: 0.64rem;
     white-space: nowrap;
   }
 
   .example-chip {
     width: auto;
     min-height: 0;
-    padding: 5px 7px;
+    padding: 5px 6px;
     justify-self: auto;
     white-space: nowrap;
     text-align: center;
-    font-size: 0.66rem;
+    font-size: 0.62rem;
+    letter-spacing: -0.015em;
   }
 
   .example-chip:nth-of-type(1) {
@@ -1603,9 +1604,9 @@ a {
   }
 
   .example-chip:nth-of-type(3) {
-    grid-column: 2 / 4;
-    grid-row: 2;
-    justify-self: center;
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: auto;
   }
 
   .network-strip {
@@ -1657,16 +1658,22 @@ a {
   }
 
   .examples {
-    column-gap: 5px;
+    column-gap: 4px;
   }
 
   .examples > span {
-    font-size: 0.64rem;
+    font-size: 0.58rem;
   }
 
   .example-chip {
-    padding-inline: 6px;
-    font-size: 0.63rem;
+    padding: 4px 5px;
+    font-size: 0.57rem;
+    letter-spacing: -0.025em;
+  }
+
+  .example-chip.is-selected::before,
+  .example-chip[aria-pressed="true"]::before {
+    margin-right: 3px;
   }
 
   .hero-card,
@@ -1816,5 +1823,20 @@ a {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .examples {
+    column-gap: 3px;
+  }
+
+  .examples > span {
+    font-size: 0.54rem;
+  }
+
+  .example-chip {
+    padding: 4px;
+    font-size: 0.53rem;
   }
 }

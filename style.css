@@ -1197,6 +1197,18 @@ a {
   font-size: 0.76rem;
 }
 
+
+.footer-copyright {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.footer-copyright #currentYear {
+  color: inherit;
+}
+
 .footer-actions {
   position: relative;
   z-index: 1;

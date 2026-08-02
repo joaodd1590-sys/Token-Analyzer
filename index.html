@@ -27,15 +27,57 @@
           <img src="favicon.png" class="header-logo" alt="Token Analyzer logo" />
           <span class="brand-copy">
             <span class="eyebrow">TOKEN CONTRACT TOOL</span>
-            <span class="brand-title">Token Analyzer <strong>V2.7</strong></span>
+            <span class="brand-title">Token Analyzer <strong>V2.9</strong></span>
           </span>
         </a>
 
         <div class="header-actions">
-          <div class="network-badge" title="Arc Testnet chain ID 5042002">
-            <span class="network-dot" id="networkDot"></span>
-            <span>Arc Testnet</span>
-            <span class="network-chain">5042002</span>
+          <div id="networkPicker" class="network-picker">
+            <button
+              id="networkMenuButton"
+              class="network-badge network-menu-button"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="networkMenu"
+              title="Select Arc network"
+            >
+              <span class="network-dot" id="networkDot" aria-hidden="true"></span>
+              <span class="network-active-label">Arc Testnet</span>
+              <span class="network-chevron" aria-hidden="true">⌄</span>
+            </button>
+
+            <div id="networkMenu" class="network-menu hidden" role="menu" aria-label="Arc networks">
+              <button
+                class="network-option is-current"
+                type="button"
+                role="menuitem"
+                data-network="arc-testnet"
+              >
+                <span class="network-option-status is-live" aria-hidden="true"></span>
+                <span class="network-option-copy">
+                  <strong>Arc Testnet</strong>
+                  <small>Active network</small>
+                </span>
+                <span class="network-option-check" aria-hidden="true">✓</span>
+              </button>
+
+              <button
+                class="network-option"
+                type="button"
+                role="menuitem"
+                data-network="arc-mainnet"
+                disabled
+                aria-disabled="true"
+              >
+                <span class="network-option-status" aria-hidden="true"></span>
+                <span class="network-option-copy">
+                  <strong>Arc Mainnet</strong>
+                  <small>Coming soon</small>
+                </span>
+                <span class="network-option-lock" aria-hidden="true">◌</span>
+              </button>
+            </div>
           </div>
           <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle color theme">
             <span aria-hidden="true">☾</span>
@@ -80,13 +122,13 @@
 
           <div class="examples" aria-label="Token examples">
             <span>Try examples:</span>
-            <button type="button" class="example-chip" data-address="0x3600000000000000000000000000000000000000">
+            <button type="button" class="example-chip" aria-pressed="false" data-address="0x3600000000000000000000000000000000000000">
               USDC · ERC-20
             </button>
-            <button type="button" class="example-chip" data-address="0x76a816EFa69e3183972ff7a231F5C8d7b065d9De">
+            <button type="button" class="example-chip" aria-pressed="false" data-address="0x76a816EFa69e3183972ff7a231F5C8d7b065d9De">
               INAME · ERC-721
             </button>
-            <button type="button" class="example-chip" data-address="0x363cC75a89aE5673b427a1Fa98AFc48FfDE7Ba43">
+            <button type="button" class="example-chip" aria-pressed="false" data-address="0x363cC75a89aE5673b427a1Fa98AFc48FfDE7Ba43">
               GM · ERC-721
             </button>
           </div>
@@ -203,7 +245,7 @@
 
       <footer class="app-footer">
         <div>
-          <strong>Token Analyzer V2.7</strong>
+          <strong>Token Analyzer V2.9</strong>
           <span>Built by João Carlos for the Arc ecosystem community.</span>
         </div>
         <nav aria-label="Project links">

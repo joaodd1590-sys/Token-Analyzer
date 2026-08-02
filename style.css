@@ -20,6 +20,7 @@
   --radius-lg: 20px;
   --radius-md: 14px;
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --sticky-header-offset: 100px;
 }
 
 body[data-theme="light"] {
@@ -91,11 +92,36 @@ a {
 }
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 34px;
+  margin: -10px -12px 14px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg) 48%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(125%);
+  backdrop-filter: blur(10px) saturate(125%);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.app-header.is-scrolled {
+  border-color: var(--border);
+  border-radius: 0 0 20px 20px;
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  box-shadow:
+    0 14px 45px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  backdrop-filter: blur(20px) saturate(145%);
 }
 
 .brand {
@@ -110,6 +136,7 @@ a {
   height: 52px;
   border-radius: 15px;
   box-shadow: 0 0 0 1px var(--border-strong), 0 16px 38px rgba(109, 40, 217, 0.3);
+  transition: transform 180ms ease, filter 180ms ease;
 }
 
 .brand-copy {
@@ -161,6 +188,11 @@ a {
   font-size: 0.82rem;
   font-weight: 650;
   backdrop-filter: blur(16px);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .network-chain {
@@ -170,16 +202,34 @@ a {
 }
 
 .network-dot {
+  position: relative;
   width: 8px;
   height: 8px;
+  flex: 0 0 8px;
   border-radius: 50%;
   background: var(--faint);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--faint) 13%, transparent);
 }
 
+.network-dot::after {
+  position: absolute;
+  inset: -1px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+}
+
 .network-dot.is-online {
+  color: var(--safe);
   background: var(--safe);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--safe) 13%, transparent);
+  animation: network-live-dot 2.7s ease-in-out infinite;
+}
+
+.network-dot.is-online::after {
+  animation: network-live-ring 2.7s ease-out infinite;
 }
 
 .network-dot.is-offline {
@@ -468,6 +518,121 @@ a {
 
 .results {
   margin-top: 32px;
+  scroll-margin-top: var(--sticky-header-offset);
+}
+
+.verdict-banner {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  padding: 19px 21px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.18);
+  scroll-margin-top: var(--sticky-header-offset);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.verdict-banner::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.08) 48%, transparent 72%);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-115%);
+}
+
+.verdict-banner.is-revealed::before {
+  animation: verdict-shine 900ms ease-out;
+}
+
+.verdict-banner.is-revealed {
+  animation: verdict-enter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.verdict-icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 17px;
+  font-size: 1.65rem;
+  font-weight: 850;
+  box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.verdict-copy {
+  min-width: 0;
+}
+
+.verdict-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: currentColor;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.verdict-copy strong {
+  display: block;
+  font-size: clamp(1.22rem, 3vw, 1.72rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.verdict-copy p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.verdict-disclaimer {
+  align-self: start;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.verdict-safe {
+  border-color: color-mix(in srgb, var(--safe) 45%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--safe) 13%, var(--bg-card)), var(--bg-card));
+  color: var(--safe);
+}
+
+.verdict-warning {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning) 13%, var(--bg-card)), var(--bg-card));
+  color: var(--warning);
+}
+
+.verdict-danger {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--danger) 14%, var(--bg-card)), var(--bg-card));
+  color: var(--danger);
+}
+
+.verdict-neutral {
+  color: var(--muted);
+}
+
+.results.result-focus .verdict-banner {
+  box-shadow: 0 0 0 5px var(--accent-soft), 0 22px 65px rgba(0, 0, 0, 0.22);
 }
 
 .result-heading {
@@ -503,6 +668,12 @@ a {
   border-radius: 999px;
   font-size: 0.69rem;
   font-weight: 750;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .badge-accent {
@@ -551,6 +722,10 @@ a {
   background: var(--bg-card);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(18px);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .card-heading,
@@ -587,7 +762,33 @@ a {
 .token-avatar img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+.token-avatar.has-image {
+  padding: 5px;
+  background: color-mix(in srgb, var(--bg-card) 88%, white 4%);
+}
+
+.token-logo-image {
+  border-radius: 11px;
+  opacity: 0;
+  animation: token-logo-reveal 220ms ease-out forwards;
+}
+
+.token-avatar.is-loading {
+  position: relative;
+}
+
+.token-avatar.is-loading::after {
+  position: absolute;
+  inset: -1px;
+  border: 2px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.72);
+  border-radius: inherit;
+  content: "";
+  animation: token-logo-spin 850ms linear infinite;
+  pointer-events: none;
 }
 
 .card-title-group {
@@ -745,8 +946,16 @@ a {
   text-decoration: none;
 }
 
+.external-link span {
+  transition: transform 160ms ease;
+}
+
 .external-link:hover {
   text-decoration: underline;
+}
+
+.external-link:hover span {
+  transform: translateX(2px);
 }
 
 .app-footer {
@@ -794,9 +1003,182 @@ a {
   }
 }
 
+@keyframes token-logo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes token-logo-reveal {
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes pulse {
   50% {
     opacity: 0.35;
+  }
+}
+
+@keyframes network-live-dot {
+  0%,
+  100% {
+    opacity: 0.78;
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--safe) 12%, transparent),
+      0 0 5px color-mix(in srgb, var(--safe) 35%, transparent);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--safe) 18%, transparent),
+      0 0 13px color-mix(in srgb, var(--safe) 72%, transparent);
+  }
+}
+
+@keyframes network-live-ring {
+  0% {
+    opacity: 0.36;
+    transform: scale(0.8);
+  }
+
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.25);
+  }
+}
+
+@keyframes verdict-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes verdict-shine {
+  to {
+    transform: translateX(115%);
+  }
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+  .app-header.is-scrolled:hover {
+    border-color: var(--border-strong);
+    box-shadow:
+      0 16px 52px rgba(0, 0, 0, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .brand:hover .header-logo {
+    filter: brightness(1.09);
+    transform: translateY(-1px) rotate(-2deg);
+  }
+
+  .network-badge:hover {
+    border-color: color-mix(in srgb, var(--safe) 30%, var(--border));
+    background: color-mix(in srgb, var(--safe) 7%, var(--bg-elevated));
+    box-shadow:
+      0 10px 34px rgba(0, 0, 0, 0.16),
+      0 0 20px color-mix(in srgb, var(--safe) 10%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .verdict-banner:hover {
+    transform: translateY(-2px);
+  }
+
+  .verdict-safe:hover {
+    border-color: color-mix(in srgb, var(--safe) 72%, var(--border));
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--safe) 23%, var(--bg-card)),
+        var(--bg-card)
+      );
+    box-shadow:
+      0 20px 64px rgba(0, 0, 0, 0.2),
+      0 0 30px color-mix(in srgb, var(--safe) 17%, transparent);
+  }
+
+  .verdict-warning:hover {
+    border-color: color-mix(in srgb, var(--warning) 72%, var(--border));
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--warning) 23%, var(--bg-card)),
+        var(--bg-card)
+      );
+    box-shadow:
+      0 20px 64px rgba(0, 0, 0, 0.2),
+      0 0 30px color-mix(in srgb, var(--warning) 17%, transparent);
+  }
+
+  .verdict-danger:hover {
+    border-color: color-mix(in srgb, var(--danger) 75%, var(--border));
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--danger) 24%, var(--bg-card)),
+        var(--bg-card)
+      );
+    box-shadow:
+      0 20px 64px rgba(0, 0, 0, 0.2),
+      0 0 30px color-mix(in srgb, var(--danger) 18%, transparent);
+  }
+
+  .verdict-safe:hover .verdict-icon,
+  .risk-safe:hover {
+    box-shadow: 0 0 22px color-mix(in srgb, var(--safe) 42%, transparent);
+  }
+
+  .verdict-warning:hover .verdict-icon,
+  .risk-warning:hover {
+    box-shadow: 0 0 22px color-mix(in srgb, var(--warning) 42%, transparent);
+  }
+
+  .verdict-danger:hover .verdict-icon,
+  .risk-danger:hover {
+    box-shadow: 0 0 22px color-mix(in srgb, var(--danger) 42%, transparent);
+  }
+
+  .risk-pill:hover {
+    transform: translateY(-1px) scale(1.045);
+  }
+
+  .risk-safe:hover {
+    border-color: color-mix(in srgb, var(--safe) 72%, transparent);
+    background: color-mix(in srgb, var(--safe) 22%, transparent);
+    color: color-mix(in srgb, var(--safe) 78%, white);
+  }
+
+  .risk-warning:hover {
+    border-color: color-mix(in srgb, var(--warning) 72%, transparent);
+    background: color-mix(in srgb, var(--warning) 22%, transparent);
+    color: color-mix(in srgb, var(--warning) 78%, white);
+  }
+
+  .risk-danger:hover {
+    border-color: color-mix(in srgb, var(--danger) 72%, transparent);
+    background: color-mix(in srgb, var(--danger) 22%, transparent);
+    color: color-mix(in srgb, var(--danger) 78%, white);
+  }
+
+  .card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 22px 62px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+  }
+
+  .example-chip:hover {
+    transform: translateY(-1px);
   }
 }
 
@@ -811,9 +1193,20 @@ a {
 }
 
 @media (max-width: 720px) {
+  .app-header.is-scrolled {
+    border-radius: 0 0 17px 17px;
+  }
+
   .app-shell {
     width: min(100% - 22px, 1160px);
     padding-top: 16px;
+  }
+
+  .app-header {
+    top: 0;
+    margin: -8px -7px 18px;
+    padding: 8px 9px;
+    border-radius: 17px;
   }
 
   .app-header,
@@ -859,9 +1252,45 @@ a {
   .badge-row {
     justify-content: flex-start;
   }
+
+  .verdict-banner {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    padding: 18px;
+  }
+
+  .verdict-disclaimer {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-left: 70px;
+  }
 }
 
 @media (max-width: 460px) {
+  .app-header {
+    gap: 8px;
+    margin: -7px -4px 18px;
+    padding: 7px;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .icon-button,
+  .network-badge {
+    min-height: 38px;
+  }
+
+  .icon-button {
+    width: 38px;
+    height: 38px;
+  }
+
   .header-logo {
     width: 44px;
     height: 44px;
@@ -895,6 +1324,23 @@ a {
 
   .data-list dd {
     text-align: left;
+  }
+
+  .verdict-banner {
+    gap: 13px;
+    padding: 16px;
+  }
+
+  .verdict-icon {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    border-radius: 15px;
+    font-size: 1.4rem;
+  }
+
+  .verdict-disclaimer {
+    margin-left: 61px;
   }
 }
 

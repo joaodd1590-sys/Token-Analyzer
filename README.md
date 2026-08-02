@@ -2,7 +2,7 @@
   <img src="./banner.png" width="100%" alt="Token Analyzer Banner"/>
 </p>
 
-<h1 align="center">🔍 Token Analyzer V2.9</h1>
+<h1 align="center">🔍 Token Analyzer V2.10</h1>
 
 <p align="center">
   Inspect ERC-20, ERC-721 and ERC-1155 token contracts on Arc Testnet.
@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-active-22c55e?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/version-2.9.0-8b5cf6?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/version-2.10.0-8b5cf6?style=for-the-badge"/>
   <img src="https://img.shields.io/badge/network-Arc%20Testnet-2563eb?style=for-the-badge"/>
 </p>
 
@@ -38,6 +38,7 @@ Paste a contract address to view:
 - Instant cached status and automatic reuse of the fastest RPC
 - Sticky navigation header that remains visible while scrolling
 - Lightweight live network pulse and risk-verdict hover interactions
+- Animated footer with compact buttons for GitHub, Arc Docs and ArcScan
 - Custom Arc network menu with Testnet active and Mainnet marked as Coming soon
 - Persistent visual selection for the active example contract
 - Confidence-aware verdicts: Likely Safe is reserved for official contracts

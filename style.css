@@ -74,7 +74,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -360,30 +361,37 @@ a {
     0 18px 44px rgba(109, 40, 217, 0.3);
 }
 
-.input-row input {
+.input-row textarea {
+  display: block;
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  min-height: 42px;
   flex: 1;
   padding: 11px 12px;
+  overflow: hidden;
   border: 0;
   outline: 0;
+  resize: none;
   background: transparent;
   color: var(--text);
+  caret-color: var(--accent-bright);
   font-family: var(--mono);
-  overflow: hidden;
   font-size: 0.9rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  white-space: pre-wrap;
   direction: ltr;
   unicode-bidi: plaintext;
+  touch-action: pan-y;
 }
 
-.input-row input::placeholder {
+.input-row textarea::placeholder {
   color: var(--faint);
 }
 
-.input-row input:disabled {
+.input-row textarea:disabled {
   opacity: 0.7;
 }
 
@@ -1255,15 +1263,23 @@ a {
     overflow: hidden;
   }
 
-  .input-row input {
+  .input-row textarea {
     width: 100%;
     min-width: 0;
     max-width: 100%;
+    min-height: 52px;
+    max-height: 76px;
     padding: 14px 14px 16px;
+    overflow-y: auto;
     border-bottom: 1px solid var(--border-strong);
     border-radius: 0;
     font-size: 16px;
     line-height: 1.35;
+    scrollbar-width: none;
+  }
+
+  .input-row textarea::-webkit-scrollbar {
+    display: none;
   }
 
   .primary-button {
@@ -1273,30 +1289,46 @@ a {
 
   .examples {
     display: grid;
-    grid-template-columns: max-content max-content;
+    grid-template-columns: max-content max-content max-content;
     align-items: center;
     justify-content: start;
-    column-gap: 10px;
-    row-gap: 10px;
+    column-gap: 6px;
+    row-gap: 9px;
     width: 100%;
     max-width: 100%;
   }
 
   .examples > span {
-    grid-column: 1 / -1;
-    margin-bottom: 2px;
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    font-size: 0.68rem;
+    white-space: nowrap;
   }
 
   .example-chip {
     width: auto;
     min-height: 0;
+    padding: 5px 7px;
     justify-self: auto;
     white-space: nowrap;
     text-align: center;
+    font-size: 0.66rem;
+  }
+
+  .example-chip:nth-of-type(1) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .example-chip:nth-of-type(2) {
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .example-chip:nth-of-type(3) {
-    grid-column: 1 / -1;
+    grid-column: 2 / 4;
+    grid-row: 2;
     justify-self: center;
   }
 
@@ -1335,6 +1367,19 @@ a {
 }
 
 @media (max-width: 460px) {
+  .examples {
+    column-gap: 5px;
+  }
+
+  .examples > span {
+    font-size: 0.64rem;
+  }
+
+  .example-chip {
+    padding-inline: 6px;
+    font-size: 0.63rem;
+  }
+
   .hero-card,
   .hero-copy,
   .analyze-form,
@@ -1345,7 +1390,7 @@ a {
     max-width: 100%;
   }
 
-  .input-row input {
+  .input-row textarea {
     display: block;
     contain: inline-size;
   }

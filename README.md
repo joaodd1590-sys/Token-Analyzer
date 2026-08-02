@@ -2,7 +2,7 @@
   <img src="./banner.png" width="100%" alt="Token Analyzer Banner"/>
 </p>
 
-<h1 align="center">🔍 Token Analyzer V2.2</h1>
+<h1 align="center">🔍 Token Analyzer V2.7</h1>
 
 <p align="center">
   Inspect ERC-20, ERC-721 and ERC-1155 token contracts on Arc Testnet.
@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-active-22c55e?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/version-2.2.0-8b5cf6?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/version-2.7.0-8b5cf6?style=for-the-badge"/>
   <img src="https://img.shields.io/badge/network-Arc%20Testnet-2563eb?style=for-the-badge"/>
 </p>
 
@@ -27,19 +27,27 @@ Paste a contract address to view:
 - Decimals when applicable
 - Total supply when the contract exposes it
 - ArcScan holder count
+- Token logo from ArcScan when an image is registered
+- Secure server-side image proxy with automatic letter fallback
 - Contract source verification
 - Common proxy signals
 - RPC provider and analyzed block
+- Prominent quick verdict: Likely Safe, Risky or High Risk
+- Automatic scrolling to the result on desktop and mobile devices
+- Parallel API/RPC connection for a faster initial network status
+- Instant cached status and automatic reuse of the fastest RPC
+- Sticky navigation header that remains visible while scrolling
+- Lightweight live network pulse and risk-verdict hover interactions
 
 The analyzer combines direct contract calls, ERC-165 interface checks and ArcScan/Blockscout token data. Missing `decimals()` is not treated as an error for ERC-721 or ERC-1155 contracts.
 
 ---
 
-## Important V2.2 fix
+## Important improvements
 
 The earlier version only accepted ERC-20 signals. Because of that, valid ArcScan tokens such as **InfinityName (INAME)** were incorrectly shown as ordinary contracts.
 
-V2.2 now recognizes:
+The current version recognizes:
 
 - ERC-20 fungible tokens
 - ERC-721 NFTs
@@ -57,7 +65,8 @@ api/
 │   └── arc.js
 ├── arc-token.js
 ├── detect-address.js
-└── network-status.js
+├── network-status.js
+└── token-icon.js
 README.md
 banner.png
 bg-squares.js

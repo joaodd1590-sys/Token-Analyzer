@@ -8,12 +8,12 @@
       content="Inspect ERC-20, ERC-721 and ERC-1155 token contracts on Arc Testnet without connecting a wallet."
     />
     <meta name="theme-color" content="#090713" />
-    <meta property="og:title" content="Token Analyzer V2.2" />
+    <meta property="og:title" content="Token Analyzer" />
     <meta
       property="og:description"
       content="Token metadata, standard detection, contract verification, proxy detection and technical signals."
     />
-    <title>Token Analyzer V2.2</title>
+    <title>Token Analyzer</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
   </head>
@@ -22,12 +22,12 @@
     <canvas id="bg-squares" aria-hidden="true"></canvas>
 
     <div class="app-shell">
-      <header class="app-header">
+      <header id="appHeader" class="app-header">
         <a class="brand" href="./" aria-label="Token Analyzer home">
           <img src="favicon.png" class="header-logo" alt="Token Analyzer logo" />
           <span class="brand-copy">
             <span class="eyebrow">TOKEN CONTRACT TOOL</span>
-            <span class="brand-title">Token Analyzer <strong>V2.2</strong></span>
+            <span class="brand-title">Token Analyzer <strong>V2.7</strong></span>
           </span>
         </a>
 
@@ -94,7 +94,7 @@
         <section class="network-strip" aria-label="Arc network status">
           <div>
             <span class="strip-label">Network</span>
-            <strong id="networkStatusText">Checking Arc Testnet…</strong>
+            <strong id="networkStatusText">Connecting to Arc Testnet…</strong>
           </div>
           <div>
             <span class="strip-label">Latest block</span>
@@ -123,6 +123,16 @@
               <h2 id="resultTitle">Token details</h2>
             </div>
             <div id="resultBadges" class="badge-row"></div>
+          </div>
+
+          <div id="verdictBanner" class="verdict-banner verdict-neutral" role="status" aria-live="polite">
+            <div id="verdictIcon" class="verdict-icon" aria-hidden="true">?</div>
+            <div class="verdict-copy">
+              <span class="verdict-eyebrow">QUICK VERDICT</span>
+              <strong id="verdictTitle">Analysis pending</strong>
+              <p id="verdictText">The automated checks will summarize the main result here.</p>
+            </div>
+            <span class="verdict-disclaimer">Automated signal · not an audit</span>
           </div>
 
           <div class="cards-grid">
@@ -192,7 +202,7 @@
 
       <footer class="app-footer">
         <div>
-          <strong>Token Analyzer V2.2</strong>
+          <strong>Token Analyzer V2.7</strong>
           <span>Built by João Carlos for the Arc ecosystem community.</span>
         </div>
         <nav aria-label="Project links">

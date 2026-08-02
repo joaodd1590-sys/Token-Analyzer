@@ -21,6 +21,85 @@ const SELECTORS = Object.freeze({
   supportsErc1155: `0x01ffc9a7d9b67a26${"0".repeat(56)}`
 });
 
+const RUNTIME_SIGNAL_SELECTORS = Object.freeze({
+  ownership: Object.freeze([
+    "8da5cb5b", // owner()
+    "893d20e8", // getOwner()
+    "f2fde38b", // transferOwnership(address)
+    "715018a6"  // renounceOwnership()
+  ]),
+  mint: Object.freeze([
+    "40c10f19", // mint(address,uint256)
+    "a0712d68", // mint(uint256)
+    "449a52f8"  // common mint variant
+  ]),
+  pause: Object.freeze([
+    "8456cb59", // pause()
+    "3f4ba83a", // unpause()
+    "5c975abb"  // paused()
+  ]),
+  blacklist: Object.freeze([
+    "f9f92be4",
+    "153b0d1e",
+    "9cfe42da",
+    "eb91e651",
+    "fe575a87",
+    "dbac26e9",
+    "8d1fdf2f"
+  ]),
+  fees: Object.freeze([
+    "69fe0e2d",
+    "0b78f9c0",
+    "47062402",
+    "2b14ca56",
+    "4f7041a5",
+    "cc1776d3",
+    "46469afb",
+    "1bff7898"
+  ]),
+  tradingLimits: Object.freeze([
+    "ec28438a",
+    "8c0b5e22",
+    "f8b45b05",
+    "8a8c523c",
+    "4ada218b"
+  ]),
+  upgrade: Object.freeze([
+    "3659cfe6", // upgradeTo(address)
+    "4f1ef286"  // upgradeToAndCall(address,bytes)
+  ])
+});
+
+function detectRuntimeSignals(bytecode) {
+  const code = String(bytecode || "").toLowerCase().replace(/^0x/, "");
+  const scanned = code.length > 0;
+  const matches = {};
+
+  for (const [group, selectors] of Object.entries(RUNTIME_SIGNAL_SELECTORS)) {
+    matches[group] = scanned
+      ? selectors.filter((selector) => code.includes(selector))
+      : [];
+  }
+
+  return {
+    scanned,
+    ownershipControls: matches.ownership.length > 0,
+    mintCapability: matches.mint.length > 0,
+    pauseControls: matches.pause.length > 0,
+    blacklistControls: matches.blacklist.length > 0,
+    feeControls: matches.fees.length > 0,
+    tradingLimits: matches.tradingLimits.length > 0,
+    upgradeFunctions: matches.upgrade.length > 0,
+    detectedGroups: Object.entries(matches)
+      .filter(([, selectors]) => selectors.length > 0)
+      .map(([group]) => group),
+    matchedSelectorCount: Object.values(matches).reduce(
+      (total, selectors) => total + selectors.length,
+      0
+    )
+  };
+}
+
 const EIP1967_IMPLEMENTATION_SLOT =
   "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 
@@ -521,7 +600,8 @@ async function inspectAddress(inputAddress) {
           ? "EIP-1967 or explorer-detected"
           : null,
       implementationAddress,
-      creationTransactionHash: explorer.creationTransactionHash
+      creationTransactionHash: explorer.creationTransactionHash,
+      runtimeSignals: detectRuntimeSignals(code)
     },
     token: {
       ...metadata,
@@ -590,6 +670,7 @@ module.exports = {
   decodeDecimals,
   decodeStorageAddress,
   decodeUint,
+  detectRuntimeSignals,
   emptyExplorerData,
   extractMinimalProxyImplementation,
   getExplorerData,
@@ -601,4 +682,3 @@ module.exports = {
   normalizeTokenStandard,
   rpcRequest
 };
-

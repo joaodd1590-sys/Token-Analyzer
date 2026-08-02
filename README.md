@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./banner.png" width="100%" alt="Token Inspector Banner"/>
+  <img src="./banner.png" width="100%" alt="Token Analyzer Banner"/>
 </p>
 
-<h1 align="center">🔍 Token Inspector V2.2</h1>
+<h1 align="center">🔍 Token Analyzer V2.2</h1>
 
 <p align="center">
   Inspect ERC-20, ERC-721 and ERC-1155 token contracts on Arc Testnet.
@@ -18,7 +18,7 @@
 
 ## Overview
 
-**Token Inspector** reads token and contract information without requiring a wallet connection.
+**Token Analyzer** reads token and contract information without requiring a wallet connection.
 
 Paste a contract address to view:
 
@@ -31,7 +31,7 @@ Paste a contract address to view:
 - Common proxy signals
 - RPC provider and analyzed block
 
-The inspector combines direct contract calls, ERC-165 interface checks and ArcScan/Blockscout token data. Missing `decimals()` is not treated as an error for ERC-721 or ERC-1155 contracts.
+The analyzer combines direct contract calls, ERC-165 interface checks and ArcScan/Blockscout token data. Missing `decimals()` is not treated as an error for ERC-721 or ERC-1155 contracts.
 
 ---
 
@@ -95,11 +95,11 @@ GMCards · ERC-721
 
 ## Live app
 
-https://arc-token-inspector.vercel.app/
+https://token-analyzer-omega.vercel.app/
 
 ## Repository
 
-https://github.com/joaodd1590-sys/Arc-Token-Inspector
+https://github.com/joaodd1590-sys/token-analyzer
 
 ---
 

@@ -124,12 +124,51 @@ function initializeEvents() {
   });
 
   ui.copyAddressBtn?.addEventListener("click", copyCurrentAddress);
+  initializeAddressFieldViewportGuard();
 
   document.querySelectorAll(".example-chip").forEach((button) => {
     button.addEventListener("click", () => {
       ui.tokenAddress.value = button.dataset.address || "";
       handleAnalyze();
     });
+  });
+}
+
+function initializeAddressFieldViewportGuard() {
+  if (!ui.tokenAddress) return;
+
+  let frame = 0;
+
+  const restoreHorizontalPosition = () => {
+    window.cancelAnimationFrame(frame);
+    frame = window.requestAnimationFrame(() => {
+      const currentTop = window.scrollY;
+
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollLeft = 0;
+
+      if (window.scrollX !== 0) {
+        window.scrollTo({
+          left: 0,
+          top: currentTop,
+          behavior: "auto"
+        });
+      }
+    });
+  };
+
+  ["focus", "select", "input", "keyup", "pointerup", "touchend"].forEach(
+    (eventName) => {
+      ui.tokenAddress.addEventListener(eventName, restoreHorizontalPosition, {
+        passive: eventName === "touchend"
+      });
+    }
+  );
+
+  document.addEventListener("selectionchange", () => {
+    if (document.activeElement === ui.tokenAddress) {
+      restoreHorizontalPosition();
+    }
   });
 }
 

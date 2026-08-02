@@ -1,9 +1,9 @@
 {
   "name": "token-analyzer",
-  "version": "2.7.0",
+  "version": "2.9.0",
   "private": true,
   "type": "commonjs",
-  "description": "Multi-standard token contract analyzer for Arc Testnet.",
+  "description": "Multi-standard token contract analyzer for Arc Testnet with confidence-aware risk scoring, runtime capability signals, a Mainnet-ready menu and persistent examples.",
   "scripts": {
     "check": "node --check tokens.js && node --check bg-squares.js && node --check api/_lib/arc.js && node --check api/arc-token.js && node --check api/detect-address.js && node --check api/network-status.js && node --check api/token-icon.js"
   },

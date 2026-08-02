@@ -125,36 +125,79 @@ function initializeEvents() {
 
   ui.copyAddressBtn?.addEventListener("click", copyCurrentAddress);
   initializeAddressFieldViewportGuard();
+  initializeAddressFieldBehavior();
 
   document.querySelectorAll(".example-chip").forEach((button) => {
     button.addEventListener("click", () => {
       ui.tokenAddress.value = button.dataset.address || "";
+      normalizeAddressField();
       handleAnalyze();
     });
   });
+}
+
+function initializeAddressFieldBehavior() {
+  if (!ui.tokenAddress) return;
+
+  ui.tokenAddress.addEventListener("input", normalizeAddressField);
+
+  ui.tokenAddress.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    normalizeAddressField();
+    handleAnalyze();
+  });
+
+  normalizeAddressField();
+}
+
+function normalizeAddressField() {
+  if (!ui.tokenAddress) return;
+
+  const normalized = String(ui.tokenAddress.value || "").replace(/\s+/g, "");
+  if (ui.tokenAddress.value !== normalized) {
+    const caret = Math.min(ui.tokenAddress.selectionStart || 0, normalized.length);
+    ui.tokenAddress.value = normalized;
+    ui.tokenAddress.setSelectionRange?.(caret, caret);
+  }
+
+  ui.tokenAddress.style.height = "auto";
+  const maximumHeight = window.matchMedia?.("(max-width: 720px)").matches ? 76 : 52;
+  ui.tokenAddress.style.height = `${Math.min(ui.tokenAddress.scrollHeight, maximumHeight)}px`;
 }
 
 function initializeAddressFieldViewportGuard() {
   if (!ui.tokenAddress) return;
 
   let frame = 0;
+  let delayedReset = 0;
 
   const restoreHorizontalPosition = () => {
-    window.cancelAnimationFrame(frame);
-    frame = window.requestAnimationFrame(() => {
-      const currentTop = window.scrollY;
+    if (document.activeElement !== ui.tokenAddress) return;
 
+    window.cancelAnimationFrame(frame);
+    window.clearTimeout(delayedReset);
+
+    const reset = () => {
+      const currentTop = window.scrollY;
+      const scrollingElement = document.scrollingElement;
+
+      if (scrollingElement) scrollingElement.scrollLeft = 0;
       document.documentElement.scrollLeft = 0;
       document.body.scrollLeft = 0;
 
       if (window.scrollX !== 0) {
-        window.scrollTo({
-          left: 0,
-          top: currentTop,
-          behavior: "auto"
-        });
+        window.scrollTo(0, currentTop);
       }
+    };
+
+    frame = window.requestAnimationFrame(() => {
+      reset();
+      window.requestAnimationFrame(reset);
     });
+
+    delayedReset = window.setTimeout(reset, 120);
   };
 
   ["focus", "select", "input", "keyup", "pointerup", "touchend"].forEach(
@@ -169,6 +212,10 @@ function initializeAddressFieldViewportGuard() {
     if (document.activeElement === ui.tokenAddress) {
       restoreHorizontalPosition();
     }
+  });
+
+  window.visualViewport?.addEventListener("scroll", restoreHorizontalPosition, {
+    passive: true
   });
 }
 
@@ -348,6 +395,7 @@ async function inspectAddressFromUrl() {
   const address = params.get("address");
   if (!address) return;
   ui.tokenAddress.value = address;
+  normalizeAddressField();
   await handleAnalyze();
 }
 

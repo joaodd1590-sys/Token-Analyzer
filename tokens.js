@@ -20,6 +20,85 @@ const SELECTORS = {
   supportsErc1155: `0x01ffc9a7d9b67a26${"0".repeat(56)}`
 };
 
+const RUNTIME_SIGNAL_SELECTORS = {
+  ownership: Object.freeze([
+    "8da5cb5b", // owner()
+    "893d20e8", // getOwner()
+    "f2fde38b", // transferOwnership(address)
+    "715018a6"  // renounceOwnership()
+  ]),
+  mint: Object.freeze([
+    "40c10f19", // mint(address,uint256)
+    "a0712d68", // mint(uint256)
+    "449a52f8"  // common mint variant
+  ]),
+  pause: Object.freeze([
+    "8456cb59", // pause()
+    "3f4ba83a", // unpause()
+    "5c975abb"  // paused()
+  ]),
+  blacklist: Object.freeze([
+    "f9f92be4",
+    "153b0d1e",
+    "9cfe42da",
+    "eb91e651",
+    "fe575a87",
+    "dbac26e9",
+    "8d1fdf2f"
+  ]),
+  fees: Object.freeze([
+    "69fe0e2d",
+    "0b78f9c0",
+    "47062402",
+    "2b14ca56",
+    "4f7041a5",
+    "cc1776d3",
+    "46469afb",
+    "1bff7898"
+  ]),
+  tradingLimits: Object.freeze([
+    "ec28438a",
+    "8c0b5e22",
+    "f8b45b05",
+    "8a8c523c",
+    "4ada218b"
+  ]),
+  upgrade: Object.freeze([
+    "3659cfe6", // upgradeTo(address)
+    "4f1ef286"  // upgradeToAndCall(address,bytes)
+  ])
+};
+
+function detectRuntimeSignals(bytecode) {
+  const code = String(bytecode || "").toLowerCase().replace(/^0x/, "");
+  const scanned = code.length > 0;
+  const matches = {};
+
+  for (const [group, selectors] of Object.entries(RUNTIME_SIGNAL_SELECTORS)) {
+    matches[group] = scanned
+      ? selectors.filter((selector) => code.includes(selector))
+      : [];
+  }
+
+  return {
+    scanned,
+    ownershipControls: matches.ownership.length > 0,
+    mintCapability: matches.mint.length > 0,
+    pauseControls: matches.pause.length > 0,
+    blacklistControls: matches.blacklist.length > 0,
+    feeControls: matches.fees.length > 0,
+    tradingLimits: matches.tradingLimits.length > 0,
+    upgradeFunctions: matches.upgrade.length > 0,
+    detectedGroups: Object.entries(matches)
+      .filter(([, selectors]) => selectors.length > 0)
+      .map(([group]) => group),
+    matchedSelectorCount: Object.values(matches).reduce(
+      (total, selectors) => total + selectors.length,
+      0
+    )
+  };
+}
+
 const OFFICIAL_TOKENS = {
   "0x3600000000000000000000000000000000000000": {
     name: "USD Coin",
@@ -57,6 +136,7 @@ window.addEventListener("DOMContentLoaded", () => {
   cacheUi();
   initializeTheme();
   initializeEvents();
+  initializeNetworkSelector();
   initializeStickyHeader();
 
   const restoredCachedStatus = restoreCachedNetworkStatus();
@@ -72,6 +152,9 @@ function cacheUi() {
     "analyzeBtn",
     "statusMsg",
     "themeToggle",
+    "networkPicker",
+    "networkMenuButton",
+    "networkMenu",
     "networkDot",
     "networkStatusText",
     "latestBlock",
@@ -126,8 +209,11 @@ function initializeEvents() {
   ui.copyAddressBtn?.addEventListener("click", copyCurrentAddress);
   initializeAddressFieldBehavior();
 
-  document.querySelectorAll(".example-chip").forEach((button) => {
+  getExampleButtons().forEach((button) => {
+    button.setAttribute("aria-pressed", "false");
+
     button.addEventListener("click", () => {
+      setSelectedExample(button);
       ui.tokenAddress.value = button.dataset.address || "";
       normalizeAddressField();
       handleAnalyze();
@@ -135,10 +221,85 @@ function initializeEvents() {
   });
 }
 
+function getExampleButtons() {
+  return [...document.querySelectorAll(".example-chip")];
+}
+
+function setSelectedExample(selectedButton) {
+  getExampleButtons().forEach((button) => {
+    const isSelected = button === selectedButton;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+}
+
+function clearSelectedExample() {
+  getExampleButtons().forEach((button) => {
+    button.classList.remove("is-selected");
+    button.setAttribute("aria-pressed", "false");
+  });
+}
+
+function syncSelectedExampleWithAddress(address) {
+  const normalizedAddress = String(address || "").trim().toLowerCase();
+
+  if (!normalizedAddress) {
+    clearSelectedExample();
+    return;
+  }
+
+  const matchingButton = getExampleButtons().find(
+    (button) =>
+      String(button.dataset.address || "").toLowerCase() === normalizedAddress
+  );
+
+  if (matchingButton) setSelectedExample(matchingButton);
+  else clearSelectedExample();
+}
+
+function initializeNetworkSelector() {
+  if (!ui.networkPicker || !ui.networkMenuButton || !ui.networkMenu) return;
+
+  const closeMenu = () => {
+    ui.networkMenu.classList.add("hidden");
+    ui.networkMenuButton.setAttribute("aria-expanded", "false");
+  };
+
+  const openMenu = () => {
+    ui.networkMenu.classList.remove("hidden");
+    ui.networkMenuButton.setAttribute("aria-expanded", "true");
+  };
+
+  ui.networkMenuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    if (ui.networkMenu.classList.contains("hidden")) openMenu();
+    else closeMenu();
+  });
+
+  ui.networkMenu
+    .querySelector('[data-network="arc-testnet"]')
+    ?.addEventListener("click", () => {
+      closeMenu();
+      showFormMessage("Arc Testnet is selected.", "success");
+    });
+
+  document.addEventListener("click", (event) => {
+    if (!ui.networkPicker.contains(event.target)) closeMenu();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMenu();
+  });
+}
+
 function initializeAddressFieldBehavior() {
   if (!ui.tokenAddress) return;
 
-  ui.tokenAddress.addEventListener("input", normalizeAddressField);
+  ui.tokenAddress.addEventListener("input", () => {
+    normalizeAddressField();
+    syncSelectedExampleWithAddress(ui.tokenAddress.value);
+  });
 
   ui.tokenAddress.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
@@ -344,6 +505,7 @@ async function inspectAddressFromUrl() {
   if (!address) return;
   ui.tokenAddress.value = address;
   normalizeAddressField();
+  syncSelectedExampleWithAddress(address);
   await handleAnalyze();
 }
 
@@ -514,11 +676,20 @@ function setAvatarFallback(symbol, { loading = false } = {}) {
 }
 
 function renderBadges(data) {
+  const evaluation = evaluateRisk(data);
+
   ui.resultBadges.replaceChildren();
   addBadge(data.standard || "Token", "accent");
   if (data.official) addBadge("Official network contract", "safe");
   if (data.contract?.verified) addBadge("Source verified", "safe");
   if (data.contract?.isProxy) addBadge("Proxy", "warning");
+
+  if (!data.official) {
+    addBadge(
+      evaluation.assurance === "strong" ? "Stronger evidence" : "Limited assurance",
+      evaluation.assurance === "strong" ? "safe" : "warning"
+    );
+  }
 
   function addBadge(label, style) {
     const span = document.createElement("span");
@@ -558,47 +729,110 @@ function renderContractDetails(data) {
     : "verification-pill is-unverified";
 }
 
-function renderSignals(data) {
+function evaluateRisk(data) {
   const token = data.token || {};
   const contract = data.contract || {};
   const standard = data.standard || token.standard;
+  const standardSource = token.standardSource || null;
+  const runtime = contract.runtimeSignals || { scanned: false };
+  const official = Boolean(data.official);
+  const fungible = ["ERC-20", "ERC-777", "ERC-4626", "ERC-404"].includes(
+    standard
+  );
   const notes = [];
   let score = 0;
 
-  if (data.official) {
-    notes.push({ tone: "positive", text: data.official.label || "Address listed in official documentation." });
+  if (official) {
+    notes.push({
+      tone: "positive",
+      text:
+        data.official.label ||
+        "This address is listed in the official Arc Testnet contract registry."
+    });
   }
 
   if (contract.verified) {
     notes.push({ tone: "positive", text: "Source code is verified in ArcScan." });
+  } else if (official) {
+    notes.push({
+      tone: "neutral",
+      text: "The official registry confirms the address, even though source verification was not returned."
+    });
   } else {
-    score += 1;
-    notes.push({ tone: "warning", text: "Source code is not verified in ArcScan." });
-  }
-
-  if (contract.isProxy) {
     score += 1;
     notes.push({
       tone: "warning",
-      text: "A proxy pattern was detected; behavior may depend on another implementation contract."
+      text: "Source code is not verified in ArcScan, which limits automated review."
     });
-  } else {
-    notes.push({ tone: "positive", text: "No common EIP-1167 or EIP-1967 proxy signal was detected." });
   }
 
-  if (standard === "ERC-20" || standard === "ERC-777" || standard === "ERC-4626") {
+  if (contract.indexed) {
+    notes.push({
+      tone: "positive",
+      text: "ArcScan indexes this contract and its token metadata."
+    });
+  } else if (!official) {
+    score += 1;
+    notes.push({
+      tone: "warning",
+      text: "ArcScan did not return indexed contract data; confidence is limited."
+    });
+  }
+
+  if (contract.isProxy) {
+    if (official) {
+      notes.push({
+        tone: "neutral",
+        text: "The official contract uses proxy architecture; logic can live in an implementation contract."
+      });
+    } else {
+      score += 1;
+      notes.push({
+        tone: "warning",
+        text: "A proxy pattern was detected; behavior may change if the implementation is upgraded."
+      });
+    }
+  } else {
+    notes.push({
+      tone: "positive",
+      text: "No common EIP-1167 or EIP-1967 proxy signal was detected."
+    });
+  }
+
+  if (standardSource === "contract-calls" && !official) {
+    score += 1;
+    notes.push({
+      tone: "warning",
+      text: "The token standard was inferred only from contract calls, not ArcScan or ERC-165."
+    });
+  } else if (standardSource === "arcscan") {
+    notes.push({ tone: "positive", text: "ArcScan confirms the token standard." });
+  } else if (standardSource === "erc165") {
+    notes.push({ tone: "positive", text: "ERC-165 confirms the token interface." });
+  }
+
+  if (fungible) {
     if (token.decimals === null || token.decimals === undefined) {
       score += 2;
-      notes.push({ tone: "danger", text: "A fungible token was detected, but decimals() was not returned." });
+      notes.push({
+        tone: "danger",
+        text: "A fungible token was detected, but decimals() was not returned."
+      });
     } else {
-      notes.push({ tone: "positive", text: `decimals() returned ${token.decimals}.` });
+      notes.push({
+        tone: "positive",
+        text: `decimals() returned ${token.decimals}.`
+      });
     }
 
     if (!token.totalSupply || token.totalSupply === "0") {
       score += 1;
       notes.push({ tone: "warning", text: "totalSupply() is missing or zero." });
     } else {
-      notes.push({ tone: "positive", text: "totalSupply() returned a valid integer value." });
+      notes.push({
+        tone: "positive",
+        text: "totalSupply() returned a valid integer value."
+      });
     }
   } else if (standard === "ERC-721") {
     notes.push({
@@ -607,8 +841,12 @@ function renderSignals(data) {
         ? "The contract confirms the ERC-721 interface through ERC-165."
         : "ArcScan identifies this contract as ERC-721."
     });
+
     if (!token.totalSupply) {
-      notes.push({ tone: "neutral", text: "totalSupply() is optional for ERC-721 and was not returned." });
+      notes.push({
+        tone: "neutral",
+        text: "totalSupply() is optional for ERC-721 and was not returned."
+      });
     }
   } else if (standard === "ERC-1155") {
     notes.push({
@@ -617,26 +855,212 @@ function renderSignals(data) {
         ? "The contract confirms the ERC-1155 interface through ERC-165."
         : "ArcScan identifies this contract as ERC-1155."
     });
-    notes.push({ tone: "neutral", text: "ERC-1155 contracts can contain many token IDs, so one global supply may not exist." });
+    notes.push({
+      tone: "neutral",
+      text: "ERC-1155 contracts can contain many token IDs, so one global supply may not exist."
+    });
   }
 
   if (!token.name || !token.symbol) {
     score += 1;
-    notes.push({ tone: "warning", text: "Name or symbol metadata is incomplete." });
+    notes.push({
+      tone: "warning",
+      text: "Name or symbol metadata is incomplete."
+    });
   }
 
-  if (data.official) score = Math.max(0, score - 2);
+  if (runtime.scanned) {
+    const managedTone = official ? "neutral" : "warning";
 
-  if (score === 0) {
-    setSignal("Likely Safe", "No obvious warning signs were found in the available automated checks.", "safe");
-  } else if (score <= 2) {
-    setSignal("Risky — Review Required", "Some signals require manual review before interacting with this contract.", "warning");
+    if (runtime.ownershipControls) {
+      notes.push({
+        tone: "neutral",
+        text: "Common owner or ownership-management selectors were detected."
+      });
+    }
+
+    if (runtime.mintCapability) {
+      if (fungible && !official) {
+        score += 2;
+        notes.push({
+          tone: "warning",
+          text: "A common mint selector was found; additional token supply may be creatable."
+        });
+      } else {
+        notes.push({
+          tone: "neutral",
+          text: fungible
+            ? "The official token exposes managed issuance controls."
+            : "A mint selector was found, which is common for NFT and multi-token contracts."
+        });
+      }
+    }
+
+    if (runtime.pauseControls) {
+      if (!official) score += 1;
+      notes.push({
+        tone: managedTone,
+        text: official
+          ? "The official issuer exposes pause controls."
+          : "Pause controls were detected; an administrator may be able to stop transfers."
+      });
+    }
+
+    if (runtime.blacklistControls) {
+      if (!official) score += 3;
+      notes.push({
+        tone: official ? "neutral" : "danger",
+        text: official
+          ? "The official issuer exposes wallet restriction controls."
+          : "Blacklist, freeze or wallet-blocking selectors were detected."
+      });
+    }
+
+    if (runtime.feeControls && fungible) {
+      if (!official) score += 2;
+      notes.push({
+        tone: official ? "neutral" : "warning",
+        text: official
+          ? "Managed fee-related selectors were detected on the official contract."
+          : "Fee or tax control selectors were detected; actual rates require manual review."
+      });
+    }
+
+    if (runtime.tradingLimits && fungible) {
+      if (!official) score += 1;
+      notes.push({
+        tone: official ? "neutral" : "warning",
+        text: official
+          ? "Managed trading controls were detected on the official contract."
+          : "Trading-limit or enablement selectors were detected."
+      });
+    }
+
+    if (runtime.upgradeFunctions && !contract.isProxy) {
+      if (!official) score += 1;
+      notes.push({
+        tone: managedTone,
+        text: "Upgrade function selectors were detected in runtime bytecode."
+      });
+    }
+
+    if (
+      !contract.isProxy &&
+      !runtime.mintCapability &&
+      !runtime.pauseControls &&
+      !runtime.blacklistControls &&
+      !runtime.feeControls &&
+      !runtime.tradingLimits &&
+      !runtime.upgradeFunctions
+    ) {
+      notes.push({
+        tone: "positive",
+        text: "No common mint, pause, blacklist, fee, trading-limit or upgrade selectors were found."
+      });
+    }
+
+    if (contract.isProxy) {
+      notes.push({
+        tone: "neutral",
+        text: "The runtime selector scan is limited because proxy logic may live in the implementation contract."
+      });
+    }
   } else {
-    setSignal("High Risk", "Several expected signals are missing or unusual. Avoid interacting until the contract is reviewed.", "danger");
+    notes.push({
+      tone: "neutral",
+      text: "Runtime selector scanning was unavailable for this response."
+    });
   }
+
+  const holdersCount = Number(token.holdersCount);
+  if (
+    fungible &&
+    !official &&
+    Number.isFinite(holdersCount) &&
+    holdersCount >= 0 &&
+    holdersCount < 10
+  ) {
+    score += 1;
+    notes.push({
+      tone: "warning",
+      text: `ArcScan currently indexes only ${holdersCount} holder${holdersCount === 1 ? "" : "s"}; market evidence is limited.`
+    });
+  }
+
+  const metadataComplete = Boolean(
+    token.name &&
+      token.symbol &&
+      (!fungible ||
+        (token.decimals !== null &&
+          token.decimals !== undefined &&
+          token.totalSupply &&
+          token.totalSupply !== "0"))
+  );
+  const recognizedSource = ["official-registry", "arcscan", "erc165"].includes(
+    standardSource
+  );
+  const assurance =
+    official ||
+    (contract.verified &&
+      contract.indexed &&
+      recognizedSource &&
+      metadataComplete &&
+      runtime.scanned)
+      ? "strong"
+      : "limited";
+
+  let label;
+  let description;
+  let tone;
+
+  if (official && score === 0) {
+    label = "Likely Safe";
+    description =
+      "The address is officially recognized and no critical inconsistency was found in the available checks.";
+    tone = "safe";
+  } else if (score === 0 && assurance === "strong") {
+    label = "Low Detected Risk";
+    description =
+      "No major warning was found and the available verification evidence is relatively strong.";
+    tone = "safe";
+  } else if (score === 0) {
+    label = "Limited Assurance";
+    description =
+      "No direct warning was found, but the available evidence is not strong enough to call the contract likely safe.";
+    tone = "warning";
+  } else if (score <= 3) {
+    label = "Review Required";
+    description =
+      "One or more automated signals require manual review before interacting with this contract.";
+    tone = "warning";
+  } else {
+    label = "High Risk";
+    description =
+      "Several warning signals or high-impact controls were detected. Avoid interacting until the contract is reviewed.";
+    tone = "danger";
+  }
+
+  return {
+    score,
+    assurance,
+    label,
+    description,
+    tone,
+    notes
+  };
+}
+
+function renderSignals(data) {
+  const evaluation = evaluateRisk(data);
+
+  setSignal(
+    evaluation.label,
+    evaluation.description,
+    evaluation.tone
+  );
 
   ui.riskNotes.replaceChildren();
-  for (const note of notes) {
+  for (const note of evaluation.notes) {
     const item = document.createElement("li");
     item.className = `signal-${note.tone}`;
     item.textContent = note.text;
@@ -902,7 +1326,8 @@ async function directInspectAddress(inputAddress) {
       contractName: explorer.contractName,
       isProxy: false,
       proxyType: null,
-      implementationAddress: null
+      implementationAddress: null,
+      runtimeSignals: detectRuntimeSignals(code)
     },
     official,
     network,

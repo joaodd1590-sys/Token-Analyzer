@@ -138,6 +138,7 @@ window.addEventListener("DOMContentLoaded", () => {
   initializeEvents();
   initializeNetworkSelector();
   initializeStickyHeader();
+  initializeFooterReveal();
 
   const restoredCachedStatus = restoreCachedNetworkStatus();
   refreshNetworkStatus({ background: restoredCachedStatus });
@@ -361,6 +362,34 @@ function initializeStickyHeader() {
   updateHeader();
   window.addEventListener("scroll", requestUpdate, { passive: true });
   window.addEventListener("resize", requestUpdate, { passive: true });
+}
+
+function initializeFooterReveal() {
+  const footer = document.getElementById("appFooter");
+  if (!footer) return;
+
+  const reduceMotion = window.matchMedia?.(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    footer.classList.add("is-visible");
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      footer.classList.add("is-visible");
+      observer.disconnect();
+    },
+    {
+      threshold: 0.18,
+      rootMargin: "0px 0px -30px"
+    }
+  );
+
+  observer.observe(footer);
 }
 
 function initializeTheme() {
